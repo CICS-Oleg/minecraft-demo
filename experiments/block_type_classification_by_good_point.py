@@ -73,6 +73,7 @@ class BlockGPDescAnalyzer:
         height, width, channels = img.shape
         y = height // 2
         x = width // 2
+        points = numpy.asarray([[y, x]])
         y1 = wnd_thr
         x1 = wnd_thr
         points2 = numpy.asarray([[y1, x1]])

@@ -93,6 +93,7 @@ class MCDataWrapper:
                 output = True
         return output
 
+    # TODO what if we need both result and ingredients filtering? Is consequent application of the filters efficient enough?
     def _metadataListFiltering(self, recipe_list, metadata, result_or_ingredients=1):
         if result_or_ingredients == 1:
             return [recipe for recipe in recipe_list if not(self._metadataIngregientFilter(recipe, metadata))]
@@ -109,11 +110,16 @@ class MCDataWrapper:
             result = self._convertIdsToNamesForRecipeList(result)
         return result
 
+    def getItemRecipieResults(self, name, get_names_instead_of_ids=False, metadata_filter=None, what_to_filter=1):
+        item = self._getBlockIdByName(name)
+        result = [recipe for recipe_list in self.mcd.recipes.values() if  for recipe in recipe_list]
+        return None
+
 
 mcdata_wrp = MCDataWrapper(mcd)
 
 # print(len(mcdata_wrp.getItemOrBlockRecipeInclusions('stone')))
-print(mcdata_wrp.getItemOrBlockRecipeInclusions('planks', metadata_filter=5, what_to_filter=mcdata_wrp.what_to_filter['ingredients']))
+print(mcdata_wrp.getItemOrBlockRecipeInclusions('planks', get_names_instead_of_ids=True, metadata_filter=5, what_to_filter=mcdata_wrp.what_to_filter['ingredients']))
 # print(mcd.version)
 #
 print(mcd.find_item_or_block(5))

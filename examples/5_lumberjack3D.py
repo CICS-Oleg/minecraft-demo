@@ -5,6 +5,7 @@ import threading
 import cv2
 import numpy
 import os
+import json
 from time import sleep, time
 import tagilmo.utils.mission_builder as mb
 from examples import minelogy
@@ -233,6 +234,63 @@ class Perturbation:
             else:
                 acts = [['attack', '0']]
         return self.move.act() + self.lookAt.act() + acts
+
+
+def process_pixel_data(pixels, resize, scale):
+    img_data = numpy.frombuffer(pixels, dtype=numpy.uint8)
+    img_data = img_data.reshape((240 * scale, 320 * scale, 3))
+    if resize != 1:
+        height, width, _ = img_data.shape
+        img_data = cv2.resize(img_data, (int(width * resize), int(height * resize)),
+            fx=resize, fy=resize, interpolation=cv2.INTER_NEAREST)
+
+    return img_data
+
+
+def get_image(img_frame, resize, scale):
+    if img_frame is not None:
+        return process_pixel_data(img_frame.pixels, resize, scale)
+    return None
+
+
+class BlockHueAnalyzer:
+
+    def __init__(self, rob):
+        # dict of pairs (current avg, num of observations)
+        self.avg_block_hue_hist = {}
+        self.rob = rob
+
+    def _getLocalHue(self):
+        wnd_thr = 5
+        img = get_image(self.rob.getCachedObserve('getImageFrame'), 4, 4)
+        bgr = img[:, :, 0:3]
+        hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
+        h, s, v = cv2.split(hsv)
+        height, width, channels = img.shape
+        y = height//2
+        x = width//2
+        crop_img = h[y-wnd_thr:y+wnd_thr, x-wnd_thr:x+wnd_thr]
+        avg = numpy.mean(crop_img)
+        return avg
+
+    def collectStat(self):
+        los = self.rob.cached['getLineOfSights'][0]
+        loc_hue = self._getLocalHue()
+        if not(self.avg_block_hue_hist.get(los['type']) is None):
+            curr_hue = self.avg_block_hue_hist[los['type']][0]
+            curr_num = self.avg_block_hue_hist[los['type']][1] + 1
+            self.avg_block_hue_hist[los['type']][0] = curr_hue + (loc_hue - curr_hue)/curr_num
+            self.avg_block_hue_hist[los['type']][1] = curr_num
+            return False
+        else:
+            self.avg_block_hue_hist[los['type']] = [loc_hue, 1]
+            return True
+
+    def saveStatJson(self, path_plus_name):
+        with open(path_plus_name, "w") as fp:
+            json.dump(self.avg_block_hue_hist, fp)
+            fp.close()
+
 
 
 class ApproachXZPos:
@@ -591,7 +649,6 @@ class LJAgent(TAgent):
             sleep(0.05)
             self.rob.updateAllObservations()
             self.visualize()
-
             # print("Current state: ", self.rob.cached['getAgentPos'])
             # print("Prev state: ", self.rob.cached_buffer['getAgentPos'])
 

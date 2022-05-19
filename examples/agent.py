@@ -1,7 +1,7 @@
 import numpy
 
 from tagilmo.utils.malmo_wrapper import MalmoConnector, RobustObserverWithCallbacks
-from neural import NeuralWrapper
+from examples.neural import NeuralWrapper
 from tagilmo.utils.mathutils import *
 
 class TAgent:
